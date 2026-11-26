@@ -35,6 +35,7 @@ import sys
 import threading
 
 import geometry_msgs.msg
+import trajectory_msgs.msg
 import rcl_interfaces.msg
 import rclpy
 
@@ -62,6 +63,9 @@ For Holonomic mode (strafing), hold down the shift key:
 
 t : up (+z)
 b : down (-z)
+
+g : gripper open
+h : gripper close
 
 anything else : stop
 
@@ -102,6 +106,11 @@ speedBindings = {
     'c': (1, .9),
 }
 
+gripperBindings = {
+    'g': 1.0, 
+    'h': 0.0, 
+}
+
 
 def getKey(settings):
     if sys.platform == 'win32':
@@ -131,6 +140,27 @@ def vels(speed, turn):
     return 'currently:\tspeed %.2f\tturn %.2f ' % (speed, turn)
 
 
+def publish_gripper(pub, node, position):
+    msg = trajectory_msgs.msg.JointTrajectory()
+
+    # Joint name
+    msg.joint_names = ['gripper']
+
+    # Joint trajectory point
+    point = trajectory_msgs.msg.JointTrajectoryPoint()
+    point.positions = [position]
+
+    # Movement duration: 0.5 sec
+    point.time_from_start.sec = 0
+    point.time_from_start.nanosec = 500000000
+
+    msg.points = [point]
+
+    # Timestamp
+    msg.header.stamp = node.get_clock().now().to_msg()
+    pub.publish(msg)
+
+
 def main():
     settings = saveTerminalSettings()
 
@@ -154,6 +184,7 @@ def main():
         TwistMsg = geometry_msgs.msg.Twist
 
     pub = node.create_publisher(TwistMsg, 'cmd_vel', 10)
+    gripper_pub = node.create_publisher(trajectory_msgs.msg.JointTrajectory, '/twist_keyboard/gripper_joint_trajectory', 10)
 
     spinner = threading.Thread(target=rclpy.spin, args=(node,))
     spinner.start()
@@ -183,6 +214,11 @@ def main():
                 y = moveBindings[key][1]
                 z = moveBindings[key][2]
                 th = moveBindings[key][3]
+            
+            elif key in gripperBindings.keys():
+                position = gripperBindings[key]
+                publish_gripper(gripper_pub, node, position)
+            
             elif key in speedBindings.keys():
                 speed = speed * speedBindings[key][0]
                 turn = turn * speedBindings[key][1]
