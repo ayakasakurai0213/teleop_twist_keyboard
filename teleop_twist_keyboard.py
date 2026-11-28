@@ -144,7 +144,7 @@ def publish_gripper(pub, node, position):
     msg = trajectory_msgs.msg.JointTrajectory()
 
     # Joint name
-    msg.joint_names = ['gripper']
+    msg.joint_names = ['finger_joint']
 
     # Joint trajectory point
     point = trajectory_msgs.msg.JointTrajectoryPoint()
@@ -184,7 +184,7 @@ def main():
         TwistMsg = geometry_msgs.msg.Twist
 
     pub = node.create_publisher(TwistMsg, 'cmd_vel', 10)
-    gripper_pub = node.create_publisher(trajectory_msgs.msg.JointTrajectory, '/twist_keyboard/gripper_joint_trajectory', 10)
+    gripper_pub = node.create_publisher(trajectory_msgs.msg.JointTrajectory, 'gripper_trajectory', 10)
 
     spinner = threading.Thread(target=rclpy.spin, args=(node,))
     spinner.start()
